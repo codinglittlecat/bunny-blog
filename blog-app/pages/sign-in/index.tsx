@@ -6,7 +6,7 @@ import { gql } from "@apollo/client";
 import { toast } from "react-toastify";
 import { useRouter } from "next/router";
 
-import { ProfileContext } from "../../components/layout";
+import { ProfileContext, profileInput } from "../../components/layout";
 
 type Inputs = {
   email: string;
@@ -33,7 +33,7 @@ export default function Signin() {
     formState: { errors },
   } = useForm<Inputs>();
 
-  const context = useContext(ProfileContext);
+  const context = useContext<profileInput>(ProfileContext);
 
   const [signinUser, { data, loading, error }] = useMutation(DO_SIGNIN);
 
@@ -51,7 +51,8 @@ export default function Signin() {
         toast.success("Welcome to Blog Site!");
         window.localStorage.setItem("blog-token", token);
         router.push("/blog");
-        context.updateProfile();
+
+        context.updateProfile && context.updateProfile();
       } else {
         toast.error("Credential is not correct!");
       }
@@ -63,11 +64,6 @@ export default function Signin() {
       <div className="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div>
-            <img
-              className="mx-auto h-12 w-auto"
-              src="https://tailwindui.com/img/logos/workflow-mark-indigo-600.svg"
-              alt="Workflow"
-            />
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
               Sign in to your account
             </h2>

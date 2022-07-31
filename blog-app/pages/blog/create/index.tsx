@@ -6,24 +6,40 @@ import { gql } from "@apollo/client";
 import { toast } from "react-toastify";
 import { useRouter } from "next/router";
 
-import { ProfileContext } from "../../components/layout";
+import { ProfileContext } from "../../../components/layout";
 
 type Inputs = {
-  name: String;
-  email: string;
-  password: string;
+  title: String;
+  content: string;
 };
 
-const DO_SIGNUP = gql`
-  mutation SignupUser($name: String!, $email: String!, $password: String!) {
-    signupUser(data: { name: $name, email: $email, password: $password }) {
+const CREATE_BLOG = gql`
+  mutation createPost($title: String!, $content: String!, $authorId: Int!) {
+    createPost(
+      data: { title: $title, content: $content, authorId: $authorId }
+    ) {
       success
-      message
     }
   }
 `;
 
-export default function Signup() {
+const GET_BLOGS = gql`
+  query GetPosts {
+    getPosts {
+      posts {
+        id
+        title
+        content
+        author {
+          id
+          name
+        }
+      }
+    }
+  }
+`;
+
+export default function Blog() {
   const {
     register,
     handleSubmit,
@@ -32,23 +48,25 @@ export default function Signup() {
 
   const context = useContext(ProfileContext);
 
-  const [signupUser, { data, loading, error }] = useMutation(DO_SIGNUP);
-
   const router = useRouter();
 
-  const onSubmit: SubmitHandler<Inputs> = (credential) => {
-    signupUser({
+  const [createPost, { data, loading, error }] = useMutation(CREATE_BLOG, {
+    refetchQueries: [{ query: GET_BLOGS }],
+  });
+
+  const onSubmit: SubmitHandler<Inputs> = (post) => {
+    createPost({
       variables: {
-        name: credential.name,
-        email: credential.email,
-        password: credential.password,
+        title: post.title,
+        content: post.content,
+        authorId: context.id,
       },
-    }).then(({ data: { signupUser } }) => {
-      if (signupUser.success) {
-        toast.success("Sign up successfully!");
-        router.push("/sign-in");
+    }).then(({ data: { createPost } }) => {
+      if (createPost.success) {
+        toast.success("Created successfully!");
+        router.push("/blog");
       } else {
-        toast.error(signupUser.message);
+        toast.error("Failed!");
       }
     });
   };
@@ -59,7 +77,7 @@ export default function Signup() {
         <div className="max-w-md w-full space-y-8">
           <div>
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              Sign up to your account
+              Create a Blog
             </h2>
           </div>
           <form
@@ -70,40 +88,27 @@ export default function Signup() {
             <div className="rounded-md shadow-sm -space-y-px">
               <div>
                 <label htmlFor="name" className="sr-only">
-                  Name
+                  Title
                 </label>
                 <input
-                  {...register("name", { required: true })}
+                  {...register("title", { required: true })}
                   autoComplete="name"
                   className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="Name"
+                  placeholder="Title"
                 />
-                {errors.name && <span>This field is required.</span>}
+                {errors.title && <span>This field is required.</span>}
               </div>
               <div>
                 <label htmlFor="email-address" className="sr-only">
-                  Email address
+                  Content
                 </label>
-                <input
-                  {...register("email", { required: true })}
-                  autoComplete="email"
+                <textarea
+                  {...register("content", { required: true })}
+                  autoComplete="content"
                   className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="Email address"
+                  placeholder="Content"
                 />
-                {errors.email && <span>This field is required.</span>}
-              </div>
-              <div>
-                <label htmlFor="password" className="sr-only">
-                  Password
-                </label>
-                <input
-                  {...register("password", { required: true })}
-                  autoComplete="current-password"
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="Password"
-                  type="password"
-                />
-                {errors.password && <span>This field is required.</span>}
+                {errors.content && <span>This field is required.</span>}
               </div>
             </div>
             <div>
@@ -124,7 +129,7 @@ export default function Signup() {
                     />
                   )}
                 </span>
-                {loading ? "Signing up" : "Sign up"}
+                {loading ? "Creating..." : "Create"}
               </button>
             </div>
           </form>
